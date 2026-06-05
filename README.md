@@ -10,7 +10,25 @@ This projects primary aim is to simulate autonomous drone operations in a dynami
 
 
 ## Tech Stack
-
+### Backend
+- Python
+- FastAPI
+### Algorithms
+- A* Pathfindinf
+- Dijkstra's Algorithm
+### Frontend
+- React
+- TypeScript
+- Vite
+### Visualization
+- Leaflet
+### Data and Validation
+- Pydantic
+### Testing
+- Pytest
+### Version Control 
+- Git 
+- GitHub
 
 ## Installation
 
