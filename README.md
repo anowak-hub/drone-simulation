@@ -31,7 +31,27 @@ This projects primary aim is to simulate autonomous drone operations in a dynami
 - GitHub
 
 ## Installation
-
+### Prerequisites 
+- Python 3.10+
+- Node.js 18+
+- Git
+### Backend 
+```bash
+cd backend 
+pip install -r requirements.txt 
+```
+### Frontend 
+```bash
+cd frontend 
+npm install
+```
+### Running the Project
+Start the frontend dev server:
+```bash
+cd frontend 
+npm run dev 
+```
+Open http://localhost:5173 in your browser.
 
 ## Usage
 
