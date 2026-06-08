@@ -1,6 +1,10 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  
-from api.routes import router 
+from api.route import router 
 
 app = FastAPI(title="Drone Simulation API")
 
