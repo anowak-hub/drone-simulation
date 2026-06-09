@@ -18,12 +18,12 @@ mission = None
 
 @router.post("/mission/start")
 
-def start_mission(goalX: int, goalY: int):
+def start_mission(goal_x: int, goal_y: int):
     global mission
-    mission = Mission("mission-1", drone, world, goal=(goalX, goalY))
+    mission = Mission("mission-1", drone, world, goal=(goal_x, goal_y))
     mission.start()
     
-    return {"status": mission.status, "goal": [goalX, goalY]}
+    return {"status": mission.status, "goal": [goal_x, goal_y]}
 
 @router.post("/mission/step")
 
