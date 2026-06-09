@@ -61,10 +61,10 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
                             value={goalX}
                             onChange={e => setGoalX(e.target.value === '' ? '' : Number(e.target.value))}
                             disabled={missionActive}
-                            placeholder="0–9"
+                            placeholder=""
                         />
                         {goalX === '' && (
-                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid value</span>
+                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid number</span>
                         )}
                     </div>
                 </div>
@@ -77,10 +77,10 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
                             value={goalY}
                             onChange={e => setGoalY(e.target.value === '' ? '' : Number(e.target.value))}
                             disabled={missionActive}
-                            placeholder="0–9"
+                            placeholder=""
                         />
                         {goalY === '' && (
-                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid value</span>
+                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid number</span>
                         )}
                     </div>
                 </div>
