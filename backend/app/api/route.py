@@ -67,3 +67,8 @@ def get_drone():
         "position": list(drone.position),
         "status": drone.status
     }
+
+@router.post("/world/obstacles")
+def set_obstacles(obstacle_list: list[list[int]]):
+    world.obstacles = set(tuple(o) for o in obstacle_list)
+    return {"obstacles": list(world.obstacles)}

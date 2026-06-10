@@ -1,15 +1,16 @@
-import { MapContainer, TileLayer, Circle, Polyline, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { World, Telemetry } from '../types/drone';
+import type { Telemetry } from '../types/drone';
 import L from 'leaflet';
 import { useMapEvents } from 'react-leaflet';
 import { useState } from 'react';
-
+import { Rectangle } from 'react-leaflet';
 interface Props {
-    world: World | null;
     telemetry: Telemetry | null;
     path: [number, number][];
     origin: [number, number] | null;
+    obstacleList: [number, number][];
+    onObstaclesChange: (updated: [number, number][]) => void;
 }
 
 const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
@@ -74,7 +75,7 @@ const originIcon = L.divIcon({
     iconAnchor: [14, 14],
 });
 
-const Map = ({ world, telemetry, path, origin }: Props) => {
+const Map = ({ telemetry, path, origin, obstacleList, onObstaclesChange }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
     const [cursor, setCursor] = useState<[number, number] | null>(null);
@@ -123,19 +124,46 @@ const Map = ({ world, telemetry, path, origin }: Props) => {
                 />
 
                 {/* Obstacles */}
-                {world?.obstacles.map(([x, y], i) => (
-                    <Circle
-                        key={i}
-                        center={toLatLng(x, y)}
-                        radius={25}
-                        pathOptions={{
-                            color: '#FF453A',
-                            fillColor: '#FF453A',
-                            fillOpacity: 0.25,
-                            weight: 2,
-                        }}
-                    />
-                ))}
+                    {obstacleList.map(([x, y], i) => (
+                        <Marker
+                            key={i}
+                            position={toLatLng(x, y)}
+                            draggable={true}
+                            icon={L.divIcon({
+                                className: '',
+                                html: `
+                                    <div style="
+                                        width: 24px;
+                                        height: 24px;
+                                        background: #FF453A;
+                                        border: 2px solid #fff;
+                                        border-radius: 50%;
+                                        box-shadow: 0 0 8px rgba(255,69,58,0.6);
+                                    "></div>
+                                `,
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12],
+                            })}
+                            eventHandlers={{
+                                dragend(e) {
+                                    const latlng = e.target.getLatLng();
+                                    const newX = Math.round((latlng.lng - center[1]) / scale);
+                                    const newY = Math.round((latlng.lat - center[0]) / scale);
+                                    const updated = obstacleList.map((obs, idx) => 
+                                        idx === i ? [newX, newY] as [number, number] : obs
+                                    ) as [number, number][];
+                                    onObstaclesChange(updated);
+                                }
+                            }}
+                        >
+                            <Popup>
+                                <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                    <strong>Obstacle {i + 1}</strong><br />
+                                    ({x}, {y})
+                                </div>
+                            </Popup>
+                        </Marker>
+                    ))}
 
                 {/* Path trail */}
                 {path.length > 1 && (
@@ -180,6 +208,21 @@ const Map = ({ world, telemetry, path, origin }: Props) => {
                         </Popup>
                     </Marker>
                 )}
+
+                {/* Grid bounds */}
+                <Rectangle
+                    bounds={[
+                        toLatLng(0, 0),
+                        toLatLng(9, 9),
+                    ]}
+                    pathOptions={{
+                        color: '#FFD60A',
+                        weight: 1.5,
+                        opacity: 0.6,
+                        fill: false,
+                        dashArray: '6 4',
+                    }}
+                />
             </MapContainer>
             {cursor && (
                 <div style={{

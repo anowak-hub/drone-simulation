@@ -6,6 +6,8 @@ interface Props {
     onMissionUpdate: (data: MissionStatus) => void;
 }
 
+const isInBounds = (val: number) => val >= 0 && val <= 9;
+
 const MissionControls = ({ onMissionUpdate }: Props) => {
     const [goalX, setGoalX] = useState<number | ''>('');
     const [goalY, setGoalY] = useState<number | ''>('');
@@ -37,7 +39,15 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
         return () => stopStepping();
     }, []);
 
-    const isValid = goalX !== '' && goalY !== '';
+    const xValid = goalX !== '' && isInBounds(Number(goalX));
+    const yValid = goalY !== '' && isInBounds(Number(goalY));
+    const isValid = xValid && yValid;
+
+    const fieldError = (val: number | '') => {
+        if (val === '') return 'Enter a valid value';
+        if (!isInBounds(Number(val))) return 'Must be between 0–9';
+        return null;
+    };
 
     return (
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #2C2C2E' }}>
@@ -53,37 +63,33 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ fontSize: '15px', color: '#fff' }}>Goal X</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <input
-                            type="number"
-                            value={goalX}
-                            onChange={e => setGoalX(e.target.value === '' ? '' : Number(e.target.value))}
-                            disabled={missionActive}
-                            placeholder=""
-                        />
-                        {goalX === '' && (
-                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid number</span>
-                        )}
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ fontSize: '15px', color: '#fff' }}>Goal Y</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                        <input
-                            type="number"
-                            value={goalY}
-                            onChange={e => setGoalY(e.target.value === '' ? '' : Number(e.target.value))}
-                            disabled={missionActive}
-                            placeholder=""
-                        />
-                        {goalY === '' && (
-                            <span style={{ fontSize: '11px', color: '#FF453A' }}>Enter a valid number</span>
-                        )}
-                    </div>
-                </div>
+                {(['X', 'Y'] as const).map((axis) => {
+                    const val = axis === 'X' ? goalX : goalY;
+                    const setVal = axis === 'X' ? setGoalX : setGoalY;
+                    const error = fieldError(val);
+                    return (
+                        <div key={axis} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <label style={{ fontSize: '15px', color: '#fff' }}>Goal {axis}</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                <input
+                                    type="number"
+                                    value={val}
+                                    onChange={e => setVal(e.target.value === '' ? '' : Number(e.target.value))}
+                                    disabled={missionActive}
+                                    placeholder="0–9"
+                                    min={0}
+                                    max={9}
+                                    style={{
+                                        borderColor: error ? '#FF453A' : undefined,
+                                    }}
+                                />
+                                {error && (
+                                    <span style={{ fontSize: '11px', color: '#FF453A' }}>{error}</span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>

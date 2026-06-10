@@ -28,3 +28,8 @@ export const getDrone = async () => {
     const res = await axios.get(`${BASE_URL}/drone`);
     return res.data;
 };
+
+export const setObstacles = async (obstacles: [number, number][]) => {
+    const res = await axios.post(`${BASE_URL}/world/obstacles`, obstacles);
+    return res.data;
+};

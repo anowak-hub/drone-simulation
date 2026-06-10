@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
-import { getWorld, getDrone } from '../services/api';
-import type { World, Telemetry, MissionStatus } from '../types/drone';
+import { getDrone, setObstacles } from '../services/api';
+import type { Telemetry, MissionStatus } from '../types/drone';
 import TelemetryPanel from '../components/TelemetryPanel';
 import MissionControls from '../components/MissionControls';
 import Map from '../components/Map';
 
 
 const Dashboard = () => {
-    const [world, setWorld] = useState<World | null>(null);
     const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
     const [path, setPath] = useState<[number, number][]>([]);
     const [missionStatus, setMissionStatus] = useState<string>('');
     const [origin, setOrigin] = useState<[number, number] | null>(null);
-
+    const [obstacleList, setObstacleList] = useState<[number, number][]>([
+        [3, 3], [3, 4], [3, 5], [3, 6]
+    ]);
+    
     useEffect(() => {
         const fetchInitialData = async () => {
-            const worldData = await getWorld();
-            setWorld(worldData);
             const droneData = await getDrone();
-            setOrigin([droneData.position[0], droneData.position[1]]);
+            setOrigin([droneData.position[0], droneData.position[1]])
         };
         fetchInitialData();
     }, []);
@@ -35,6 +35,11 @@ const Dashboard = () => {
             return [...prev, data.position];
         });
         setMissionStatus(data.mission_status);
+    };
+
+    const handleObstaclesChange = async (updated: [number, number][]) => {
+        setObstacleList(updated);
+        await setObstacles(updated);
     };
 
     return (
@@ -99,7 +104,7 @@ const Dashboard = () => {
 
                 {/* Map */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                    <Map world={world} telemetry={telemetry} path={path} origin={origin} />
+                    <Map telemetry={telemetry} path={path} origin={origin} obstacleList={obstacleList} onObstaclesChange={handleObstaclesChange}/>
                 </div>
             </div>
         </div>
