@@ -2,12 +2,27 @@ import { MapContainer, TileLayer, Circle, Polyline, Marker, Popup } from 'react-
 import 'leaflet/dist/leaflet.css';
 import type { World, Telemetry } from '../types/drone';
 import L from 'leaflet';
+import { useMapEvents } from 'react-leaflet';
+import { useState } from 'react';
 
 interface Props {
     world: World | null;
     telemetry: Telemetry | null;
     path: [number, number][];
     origin: [number, number] | null;
+}
+
+const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
+    useMapEvents({
+        mousemove(e) {
+            const center = { lat: 51.505, lng: -0.09 };
+            const scale = 0.001;
+            const x = Math.round((e.latlng.lng - center.lng) / scale);
+            const y = Math.round((e.latlng.lat - center.lat) / scale);
+            onMove(x, y);
+        }
+    });
+    return null;
 }
 
 const droneIcon = L.divIcon({
@@ -62,6 +77,7 @@ const originIcon = L.divIcon({
 const Map = ({ world, telemetry, path, origin }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
+    const [cursor, setCursor] = useState<[number, number] | null>(null);
 
     const toLatLng = (x: number, y: number): [number, number] => [
         center[0] + y * scale,
@@ -69,7 +85,7 @@ const Map = ({ world, telemetry, path, origin }: Props) => {
     ];
 
     return (
-        <div style={{ height: '100%', width: '100%' }}>
+        <div style={{ height: '100%', width: '100%', position: 'relative' }}>
             <style>{`
                 .leaflet-container {
                     height: 100%;
@@ -96,6 +112,11 @@ const Map = ({ world, telemetry, path, origin }: Props) => {
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={true}
             >
+                 <CursorTracker onMove={(x, y) => setCursor([x, y])} />
+                <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution="&copy; OpenStreetMap contributors"
+                />
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap contributors"
@@ -160,6 +181,24 @@ const Map = ({ world, telemetry, path, origin }: Props) => {
                     </Marker>
                 )}
             </MapContainer>
+            {cursor && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '16px',
+                    left: '16px',
+                    zIndex: 1000,
+                    background: 'rgba(0,0,0,0.75)',
+                    color: '#fff',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontFamily: 'system-ui',
+                    backdropFilter: 'blur(6px)',
+                    pointerEvents: 'none',
+                }}>
+                    X: {cursor[0]}  Y: {cursor[1]}
+                </div>
+            )}
         </div>
     );
 };
