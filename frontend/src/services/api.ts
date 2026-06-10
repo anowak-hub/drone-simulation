@@ -23,3 +23,8 @@ export const stepMission = async () => {
     const res = await axios.post(`${BASE_URL}/mission/step`);
     return res.data;
 };
+
+export const getDrone = async () => {
+    const res = await axios.get(`${BASE_URL}/drone`);
+    return res.data;
+};

@@ -60,3 +60,10 @@ def get_world():
         "height": world.height,
         "obstacles": list(world.obstacles)
     }
+
+@router.get("/drone")
+def get_drone():
+    return {
+        "position": list(drone.position),
+        "status": drone.status
+    }

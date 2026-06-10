@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react';
-import { getWorld } from '../services/api';
+import { getWorld, getDrone } from '../services/api';
 import type { World, Telemetry, MissionStatus } from '../types/drone';
 import TelemetryPanel from '../components/TelemetryPanel';
 import MissionControls from '../components/MissionControls';
 import Map from '../components/Map';
+
 
 const Dashboard = () => {
     const [world, setWorld] = useState<World | null>(null);
     const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
     const [path, setPath] = useState<[number, number][]>([]);
     const [missionStatus, setMissionStatus] = useState<string>('');
+    const [origin, setOrigin] = useState<[number, number] | null>(null);
 
     useEffect(() => {
-        const fetchWorld = async () => {
-            const data = await getWorld();
-            setWorld(data);
+        const fetchInitialData = async () => {
+            const worldData = await getWorld();
+            setWorld(worldData);
+            const droneData = await getDrone();
+            setOrigin([droneData.position[0], droneData.position[1]]);
         };
-        fetchWorld();
+        fetchInitialData();
     }, []);
 
     const handleMissionUpdate = (data: MissionStatus) => {
@@ -26,7 +30,10 @@ const Dashboard = () => {
             steps: data.steps,
             status: data.status,
         });
-        setPath(prev => [...prev, data.position]);
+        setPath(prev => {
+            if (prev.length === 0) setOrigin([data.position[0], data.position[1]]);
+            return [...prev, data.position];
+        });
         setMissionStatus(data.mission_status);
     };
 
@@ -92,7 +99,7 @@ const Dashboard = () => {
 
                 {/* Map */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                    <Map world={world} telemetry={telemetry} path={path} />
+                    <Map world={world} telemetry={telemetry} path={path} origin={origin} />
                 </div>
             </div>
         </div>

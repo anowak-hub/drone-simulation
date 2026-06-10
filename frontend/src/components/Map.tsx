@@ -7,6 +7,7 @@ interface Props {
     world: World | null;
     telemetry: Telemetry | null;
     path: [number, number][];
+    origin: [number, number] | null;
 }
 
 const droneIcon = L.divIcon({
@@ -21,15 +22,44 @@ const droneIcon = L.divIcon({
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
             box-shadow: 0 0 12px rgba(10,132,255,0.6);
-        ">🛸</div>
+        ">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+                <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+                <path d="M6.5 8.5 4 6M17.5 8.5 20 6M6.5 15.5 4 18M17.5 15.5 20 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="4" cy="5.5" r="2" fill="white"/>
+                <circle cx="20" cy="5.5" r="2" fill="white"/>
+                <circle cx="4" cy="18.5" r="2" fill="white"/>
+                <circle cx="20" cy="18.5" r="2" fill="white"/>
+                <rect x="7" y="9" width="10" height="6" rx="2" fill="white"/>
+            </svg>
+        </div>
     `,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
 });
 
-const Map = ({ world, telemetry, path }: Props) => {
+const originIcon = L.divIcon({
+    className: '',
+    html: `
+        <div style="
+            width: 28px;
+            height: 28px;
+            background: #30D158;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 0 12px rgba(48,209,88,0.6);
+        ">⬤</div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+});
+
+const Map = ({ world, telemetry, path, origin }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
 
@@ -110,6 +140,21 @@ const Map = ({ world, telemetry, path }: Props) => {
                                 <strong>Drone-1</strong><br />
                                 Battery: {telemetry.battery.toFixed(1)}%<br />
                                 Steps: {telemetry.steps}
+                            </div>
+                        </Popup>
+                    </Marker>
+                )}
+
+                {/* Origin */}
+                {origin && (
+                    <Marker
+                        position={toLatLng(origin[0], origin[1])}
+                        icon={originIcon}
+                    >
+                        <Popup>
+                            <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                <strong>Origin</strong><br />
+                                ({origin[0]}, {origin[1]})
                             </div>
                         </Popup>
                     </Marker>
