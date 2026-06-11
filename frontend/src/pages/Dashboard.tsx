@@ -57,7 +57,17 @@ const Dashboard = () => {
                 alignItems: 'center',
                 gap: '12px',
             }}>
-                <span style={{ fontSize: '20px' }}>🛸</span>
+                <span style={{ fontSize: '20px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
+                        <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+                        <path d="M6.5 8.5 4 6M17.5 8.5 20 6M6.5 15.5 4 18M17.5 15.5 20 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="4" cy="5.5" r="2" fill="white"/>
+                        <circle cx="20" cy="5.5" r="2" fill="white"/>
+                        <circle cx="4" cy="18.5" r="2" fill="white"/>
+                        <circle cx="20" cy="18.5" r="2" fill="white"/>
+                        <rect x="7" y="9" width="10" height="6" rx="2" fill="white"/>
+                    </svg>
+                </span>
                 <span style={{
                     fontSize: '17px',
                     fontWeight: 600,
