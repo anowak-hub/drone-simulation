@@ -7,13 +7,14 @@ interface Props {
 }
 
 const isInBounds = (val: number) => val >= 0 && val <= 9;
-
 const DRONE_IDS = ['drone-1', 'drone-2', 'drone-3'];
+const ALGORITHMS = ['astar', 'dijkstra'];
 
 const MissionControls = ({ onMissionUpdate }: Props) => {
     const [selectedDrone, setSelectedDrone] = useState<string>('drone-1');
     const [goalX, setGoalX] = useState<number | ''>('');
     const [goalY, setGoalY] = useState<number | ''>('');
+    const [algorithm, setAlgorithm] = useState<string>('astar');
     const [activeDrones, setActiveDrones] = useState<Set<string>>(new Set());
     const intervalsRef = useRef<Record<string, number>>({});
 
@@ -31,7 +32,7 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
 
     const handleStart = async () => {
         const droneId = selectedDrone;
-        await startMission(droneId, Number(goalX), Number(goalY));
+        await startMission(droneId, Number(goalX), Number(goalY), algorithm);
         setActiveDrones(prev => new Set(prev).add(droneId));
 
         intervalsRef.current[droneId] = setInterval(async () => {
@@ -97,6 +98,30 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
                             {activeDrones.has(id) && (
                                 <span style={{ marginLeft: '4px', color: '#30D158' }}>⬤</span>
                             )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Algorithm selector */}
+            <div style={{ marginBottom: '16px' }}>
+                <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '8px' }}>Algorithm</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    {ALGORITHMS.map(alg => (
+                        <button
+                            key={alg}
+                            onClick={() => setAlgorithm(alg)}
+                            style={{
+                                flex: 1,
+                                padding: '6px',
+                                fontSize: '12px',
+                                background: algorithm === alg ? '#5E5CE6' : '#2C2C2E',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                border: 'none',
+                            }}
+                        >
+                            {alg === 'astar' ? 'A*' : 'Dijkstra'}
                         </button>
                     ))}
                 </div>

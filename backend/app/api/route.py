@@ -104,3 +104,18 @@ def set_obstacles(obstacle_list: list[list[int]]):
 def add_threat(x: int, y: int):
     world.add_obstacle(x, y)
     return {"threats": list(world.obstacles)}
+
+@router.post("/mission/start")
+def start_mission(drone_id: str, goal_x: int, goal_y: int, algorithm: str = "astar"):
+    if drone_id not in drones:
+        return {"error": f"Drone {drone_id} not found"}
+    drone = drones[drone_id]
+    mission = Mission(f"mission-{drone_id}", drone, world, goal=(goal_x, goal_y), algorithm=algorithm)
+    mission.start()
+    missions[drone_id] = mission
+    return {
+        "drone_id": drone_id,
+        "status": mission.status,
+        "goal": [goal_x, goal_y],
+        "algorithm": algorithm,
+    }

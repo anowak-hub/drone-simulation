@@ -22,9 +22,9 @@ export const getFleet = async () => {
     return res.data;
 };
 
-export const startMission = async (droneId: string, goalX: number, goalY: number) => {
+export const startMission = async (droneId: string, goalX: number, goalY: number, algorithm: string) => {
     const res = await axios.post(`${BASE_URL}/mission/start`, null, {
-        params: { drone_id: droneId, goal_x: goalX, goal_y: goalY }
+        params: { drone_id: droneId, goal_x: goalX, goal_y: goalY, algorithm }
     });
     return res.data;
 };
