@@ -12,20 +12,27 @@ export const getTelemetry = async () => {
     return res.data;
 };
 
-export const startMission = async (goalX: number, goalY: number) => {
+export const getDrone = async () => {
+    const res = await axios.get(`${BASE_URL}/drone`);
+    return res.data;
+};
+
+export const getFleet = async () => {
+    const res = await axios.get(`${BASE_URL}/fleet`);
+    return res.data;
+};
+
+export const startMission = async (droneId: string, goalX: number, goalY: number) => {
     const res = await axios.post(`${BASE_URL}/mission/start`, null, {
-        params: { goal_x: goalX, goal_y: goalY }
+        params: { drone_id: droneId, goal_x: goalX, goal_y: goalY }
     });
     return res.data;
 };
 
-export const stepMission = async () => {
-    const res = await axios.post(`${BASE_URL}/mission/step`);
-    return res.data;
-};
-
-export const getDrone = async () => {
-    const res = await axios.get(`${BASE_URL}/drone`);
+export const stepMission = async (droneId: string) => {
+    const res = await axios.post(`${BASE_URL}/mission/step`, null, {
+        params: { drone_id: droneId }
+    });
     return res.data;
 };
 

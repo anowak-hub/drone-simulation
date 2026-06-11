@@ -1,26 +1,41 @@
-import { useEffect, useState } from 'react';
-import { getDrone, setObstacles } from '../services/api';
-import type { Telemetry, MissionStatus } from '../types/drone';
+import { useEffect, useState, useRef } from 'react';
+import { getDrone, setObstacles, getFleet } from '../services/api';
+import type { Telemetry, MissionStatus, FleetState } from '../types/drone';
 import TelemetryPanel from '../components/TelemetryPanel';
 import MissionControls from '../components/MissionControls';
+import FleetPanel from '../components/FleetPanel';
 import Map from '../components/Map';
-
 
 const Dashboard = () => {
     const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
-    const [path, setPath] = useState<[number, number][]>([]);
+    const [path, setPath] = useState<Record<string, [number, number][]>>({});
     const [missionStatus, setMissionStatus] = useState<string>('');
     const [origin, setOrigin] = useState<[number, number] | null>(null);
     const [obstacleList, setObstacleList] = useState<[number, number][]>([
         [3, 3], [3, 4], [3, 5], [3, 6]
     ]);
-    
+    const [fleet, setFleet] = useState<FleetState>({});
+    const fleetIntervalRef = useRef<number | null>(null);
+
     useEffect(() => {
         const fetchInitialData = async () => {
             const droneData = await getDrone();
-            setOrigin([droneData.position[0], droneData.position[1]])
+            const firstDrone = Object.values(droneData)[0] as { position: [number, number] };
+            setOrigin([firstDrone.position[0], firstDrone.position[1]]);
+
+            const fleetData = await getFleet();
+            setFleet(fleetData);
         };
         fetchInitialData();
+
+        fleetIntervalRef.current = setInterval(async () => {
+            const fleetData = await getFleet();
+            setFleet(fleetData);
+        }, 1000);
+
+        return () => {
+            if (fleetIntervalRef.current) clearInterval(fleetIntervalRef.current);
+        };
     }, []);
 
     const handleMissionUpdate = (data: MissionStatus) => {
@@ -31,8 +46,12 @@ const Dashboard = () => {
             status: data.status,
         });
         setPath(prev => {
-            if (prev.length === 0) setOrigin([data.position[0], data.position[1]]);
-            return [...prev, data.position];
+            const dronePath = prev[data.drone_id] ?? [];
+            if (dronePath.length === 0) setOrigin([data.position[0], data.position[1]]);
+            return {
+                ...prev,
+                [data.drone_id]: [...dronePath, data.position],
+            };
         });
         setMissionStatus(data.mission_status);
     };
@@ -41,6 +60,8 @@ const Dashboard = () => {
         setObstacleList(updated);
         await setObstacles(updated);
     };
+
+    const allPaths = Object.values(path).flat() as [number, number][];
 
     return (
         <div style={{
@@ -57,7 +78,7 @@ const Dashboard = () => {
                 alignItems: 'center',
                 gap: '12px',
             }}>
-                <span style={{ fontSize: '20px' }}>
+                <span style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
                         <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
                         <path d="M6.5 8.5 4 6M17.5 8.5 20 6M6.5 15.5 4 18M17.5 15.5 20 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -109,12 +130,19 @@ const Dashboard = () => {
                     overflowY: 'auto',
                 }}>
                     <MissionControls onMissionUpdate={handleMissionUpdate} />
+                    <FleetPanel fleet={fleet} />
                     <TelemetryPanel telemetry={telemetry} />
                 </div>
 
                 {/* Map */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                    <Map telemetry={telemetry} path={path} origin={origin} obstacleList={obstacleList} onObstaclesChange={handleObstaclesChange}/>
+                    <Map
+                        path={allPaths}
+                        origin={origin}
+                        obstacleList={obstacleList}
+                        onObstaclesChange={handleObstaclesChange}
+                        fleet={fleet}
+                    />
                 </div>
             </div>
         </div>

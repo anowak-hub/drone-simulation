@@ -1,16 +1,16 @@
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Rectangle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { Telemetry } from '../types/drone';
+import type { FleetState } from '../types/drone';
 import L from 'leaflet';
 import { useMapEvents } from 'react-leaflet';
 import { useState } from 'react';
-import { Rectangle } from 'react-leaflet';
+
 interface Props {
-    telemetry: Telemetry | null;
     path: [number, number][];
     origin: [number, number] | null;
     obstacleList: [number, number][];
     onObstaclesChange: (updated: [number, number][]) => void;
+    fleet: FleetState;
 }
 
 const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
@@ -24,21 +24,27 @@ const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) =
         }
     });
     return null;
-}
+};
 
-const droneIcon = L.divIcon({
+const DRONE_COLORS: Record<string, string> = {
+    'drone-1': '#0A84FF',
+    'drone-2': '#FF9F0A',
+    'drone-3': '#30D158',
+};
+
+const makeDroneIcon = (color: string) => L.divIcon({
     className: '',
     html: `
         <div style="
             width: 36px;
             height: 36px;
-            background: #0A84FF;
+            background: ${color};
             border: 3px solid #fff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 12px rgba(10,132,255,0.6);
+            box-shadow: 0 0 12px ${color}99;
         ">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
                 <path d="M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
@@ -75,7 +81,7 @@ const originIcon = L.divIcon({
     iconAnchor: [14, 14],
 });
 
-const Map = ({ telemetry, path, origin, obstacleList, onObstaclesChange }: Props) => {
+const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
     const [cursor, setCursor] = useState<[number, number] | null>(null);
@@ -113,57 +119,65 @@ const Map = ({ telemetry, path, origin, obstacleList, onObstaclesChange }: Props
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={true}
             >
-                 <CursorTracker onMove={(x, y) => setCursor([x, y])} />
-                <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution="&copy; OpenStreetMap contributors"
-                />
+                <CursorTracker onMove={(x, y) => setCursor([x, y])} />
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap contributors"
                 />
 
+                {/* Grid bounds */}
+                <Rectangle
+                    bounds={[toLatLng(0, 0), toLatLng(9, 9)]}
+                    pathOptions={{
+                        color: '#FFD60A',
+                        weight: 1.5,
+                        opacity: 0.6,
+                        fill: false,
+                        dashArray: '6 4',
+                    }}
+                />
+
                 {/* Obstacles */}
-                    {obstacleList.map(([x, y], i) => (
-                        <Marker
-                            key={i}
-                            position={toLatLng(x, y)}
-                            draggable={true}
-                            icon={L.divIcon({
-                                className: '',
-                                html: `
-                                    <div style="
-                                        width: 24px;
-                                        height: 24px;
-                                        background: #FF453A;
-                                        border: 2px solid #fff;
-                                        border-radius: 50%;
-                                        box-shadow: 0 0 8px rgba(255,69,58,0.6);
-                                    "></div>
-                                `,
-                                iconSize: [24, 24],
-                                iconAnchor: [12, 12],
-                            })}
-                            eventHandlers={{
-                                dragend(e) {
-                                    const latlng = e.target.getLatLng();
-                                    const newX = Math.round((latlng.lng - center[1]) / scale);
-                                    const newY = Math.round((latlng.lat - center[0]) / scale);
-                                    const updated = obstacleList.map((obs, idx) => 
-                                        idx === i ? [newX, newY] as [number, number] : obs
-                                    ) as [number, number][];
-                                    onObstaclesChange(updated);
-                                }
-                            }}
-                        >
-                            <Popup>
-                                <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
-                                    <strong>Obstacle {i + 1}</strong><br />
-                                    ({x}, {y})
-                                </div>
-                            </Popup>
-                        </Marker>
-                    ))}
+                {obstacleList.map(([x, y], i) => (
+                    <Marker
+                        key={i}
+                        position={toLatLng(x, y)}
+                        draggable={true}
+                        icon={L.divIcon({
+                            className: '',
+                            html: `
+                                <div style="
+                                    width: 24px;
+                                    height: 24px;
+                                    background: #FF453A;
+                                    border: 2px solid #fff;
+                                    border-radius: 50%;
+                                    box-shadow: 0 0 8px rgba(255,69,58,0.6);
+                                "></div>
+                            `,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12],
+                        })}
+                        eventHandlers={{
+                            dragend(e) {
+                                const latlng = e.target.getLatLng();
+                                const newX = Math.round((latlng.lng - center[1]) / scale);
+                                const newY = Math.round((latlng.lat - center[0]) / scale);
+                                const updated = obstacleList.map((obs, idx) =>
+                                    idx === i ? [newX, newY] as [number, number] : obs
+                                ) as [number, number][];
+                                onObstaclesChange(updated);
+                            }
+                        }}
+                    >
+                        <Popup>
+                            <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                <strong>Obstacle {i + 1}</strong><br />
+                                ({x}, {y})
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
 
                 {/* Path trail */}
                 {path.length > 1 && (
@@ -176,22 +190,6 @@ const Map = ({ telemetry, path, origin, obstacleList, onObstaclesChange }: Props
                             dashArray: '6 4',
                         }}
                     />
-                )}
-
-                {/* Drone */}
-                {telemetry && (
-                    <Marker
-                        position={toLatLng(telemetry.position[0], telemetry.position[1])}
-                        icon={droneIcon}
-                    >
-                        <Popup>
-                            <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
-                                <strong>Drone-1</strong><br />
-                                Battery: {telemetry.battery.toFixed(1)}%<br />
-                                Steps: {telemetry.steps}
-                            </div>
-                        </Popup>
-                    </Marker>
                 )}
 
                 {/* Origin */}
@@ -209,21 +207,25 @@ const Map = ({ telemetry, path, origin, obstacleList, onObstaclesChange }: Props
                     </Marker>
                 )}
 
-                {/* Grid bounds */}
-                <Rectangle
-                    bounds={[
-                        toLatLng(0, 0),
-                        toLatLng(9, 9),
-                    ]}
-                    pathOptions={{
-                        color: '#FFD60A',
-                        weight: 1.5,
-                        opacity: 0.6,
-                        fill: false,
-                        dashArray: '6 4',
-                    }}
-                />
+                {/* Fleet drones */}
+                {Object.entries(fleet).map(([droneId, state]) => (
+                    <Marker
+                        key={droneId}
+                        position={toLatLng(state.position[0], state.position[1])}
+                        icon={makeDroneIcon(DRONE_COLORS[droneId] ?? '#fff')}
+                    >
+                        <Popup>
+                            <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                <strong>{droneId}</strong><br />
+                                Position: ({state.position[0]}, {state.position[1]})<br />
+                                Battery: {state.battery.toFixed(1)}%<br />
+                                Status: {state.status}
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
             </MapContainer>
+
             {cursor && (
                 <div style={{
                     position: 'absolute',
