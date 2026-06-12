@@ -11,16 +11,22 @@ class Drone:
         self.path_index = 0
         self.status = "moving"
     
-    def step(self):
+    def step(self, occupied: set[tuple[int, int]] = set()):
         if self.status != "moving":
-            return 
+            return
 
         if self.path_index >= len(self.path) - 1:
             self.status = "arrived"
             return
 
+        next_pos = self.path[self.path_index + 1]
+
+        if next_pos in occupied:
+            # Wait in place this step
+            return
+
         self.path_index += 1
-        self.position = self.path[self.path_index]
+        self.position = next_pos
         
     def is_done(self) -> bool:
         return self.status == "arrived"

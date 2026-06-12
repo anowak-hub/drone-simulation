@@ -39,10 +39,19 @@ def start_mission(drone_id: str, goal_x: int, goal_y: int):
 def step_mission(drone_id: str):
     if drone_id not in missions:
         return {"error": f"No mission for {drone_id}"}
+
+    # Build set of all other drone positions
+    occupied = {
+        tuple(drone.position)
+        for did, drone in drones.items()
+        if did != drone_id and drone.status == "moving"
+    }
+
     mission = missions[drone_id]
-    mission.update()
+    mission.update(occupied)
     telemetry[drone_id].update()
     drone = drones[drone_id]
+
     return {
         "drone_id": drone_id,
         "position": list(drone.position),
