@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Polyline, Marker, Popup, Rectangle, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Rectangle, CircleMarker, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { FleetState } from '../types/drone';
 import L from 'leaflet';
@@ -12,9 +12,14 @@ interface Props {
     onObstaclesChange: (updated: [number, number][]) => void;
     fleet: FleetState;
     plannedWaypoints: [number, number][];
+    threatZones: [number, number][];
+    onMapClick: (x: number, y: number) => void;
 }
 
-const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
+const CursorTracker = ({ onMove, onClick }: {
+    onMove: (x: number, y: number) => void;
+    onClick: (x: number, y: number) => void;
+}) => {
     useMapEvents({
         mousemove(e) {
             const center = { lat: 51.505, lng: -0.09 };
@@ -22,6 +27,15 @@ const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) =
             const x = Math.round((e.latlng.lng - center.lng) / scale);
             const y = Math.round((e.latlng.lat - center.lat) / scale);
             onMove(x, y);
+        },
+        click(e) {
+            const center = { lat: 51.505, lng: -0.09 };
+            const scale = 0.001;
+            const x = Math.round((e.latlng.lng - center.lng) / scale);
+            const y = Math.round((e.latlng.lat - center.lat) / scale);
+            if (x >= 0 && x <= 9 && y >= 0 && y <= 9) {
+                onClick(x, y);
+            }
         }
     });
     return null;
@@ -82,7 +96,7 @@ const originIcon = L.divIcon({
     iconAnchor: [14, 14],
 });
 
-const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWaypoints }: Props) => {
+const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWaypoints, threatZones, onMapClick }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
     const [cursor, setCursor] = useState<[number, number] | null>(null);
@@ -120,7 +134,10 @@ const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWayp
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={true}
             >
-                <CursorTracker onMove={(x, y) => setCursor([x, y])} />
+                <CursorTracker
+                    onMove={(x, y) => setCursor([x, y])}
+                    onClick={onMapClick}
+                />
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution="&copy; OpenStreetMap contributors"
@@ -137,6 +154,30 @@ const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWayp
                         dashArray: '6 4',
                     }}
                 />
+
+                {/* Threat zones */}
+                {threatZones.map(([x, y], i) => (
+                    <Circle
+                        key={`threat-${i}`}
+                        center={toLatLng(x, y)}
+                        radius={40}
+                        pathOptions={{
+                            color: '#FF9F0A',
+                            fillColor: '#FF9F0A',
+                            fillOpacity: 0.2,
+                            weight: 2,
+                            dashArray: '4 4',
+                        }}
+                    >
+                        <Popup>
+                            <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                <strong>⚠ Threat Zone</strong><br />
+                                ({x}, {y})<br />
+                                <span style={{ color: '#888' }}>Click to remove</span>
+                            </div>
+                        </Popup>
+                    </Circle>
+                ))}
 
                 {/* Obstacles */}
                 {obstacleList.map(([x, y], i) => (
@@ -262,24 +303,42 @@ const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWayp
                 )}
             </MapContainer>
 
-            {cursor && (
+            {/* HUD */}
+            <div style={{
+                position: 'absolute',
+                bottom: '16px',
+                left: '16px',
+                zIndex: 1000,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                pointerEvents: 'none',
+            }}>
+                {cursor && (
+                    <div style={{
+                        background: 'rgba(0,0,0,0.75)',
+                        color: '#fff',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontFamily: 'system-ui',
+                        backdropFilter: 'blur(6px)',
+                    }}>
+                        X: {cursor[0]}  Y: {cursor[1]}
+                    </div>
+                )}
                 <div style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '16px',
-                    zIndex: 1000,
                     background: 'rgba(0,0,0,0.75)',
-                    color: '#fff',
+                    color: '#8E8E93',
                     padding: '6px 12px',
                     borderRadius: '8px',
-                    fontSize: '13px',
+                    fontSize: '12px',
                     fontFamily: 'system-ui',
                     backdropFilter: 'blur(6px)',
-                    pointerEvents: 'none',
                 }}>
-                    X: {cursor[0]}  Y: {cursor[1]}
+                    Click map to place/remove threat zones
                 </div>
-            )}
+            </div>
         </div>
     );
 };

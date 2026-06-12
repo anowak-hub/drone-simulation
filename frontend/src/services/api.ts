@@ -52,3 +52,27 @@ export const queueMission = async (droneId: string, waypoints: [number, number][
     });
     return res.data;
 };
+
+export const getThreats = async () => {
+    const res = await axios.get(`${BASE_URL}/world/threats`);
+    return res.data;
+};
+
+export const addThreat = async (x: number, y: number) => {
+    const res = await axios.post(`${BASE_URL}/world/threats/add`, null, {
+        params: { x, y }
+    });
+    return res.data;
+};
+
+export const removeThreat = async (x: number, y: number) => {
+    const res = await axios.post(`${BASE_URL}/world/threats/remove`, null, {
+        params: { x, y }
+    });
+    return res.data;
+};
+
+export const clearThreats = async () => {
+    const res = await axios.post(`${BASE_URL}/world/threats/clear`);
+    return res.data;
+};

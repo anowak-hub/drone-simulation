@@ -20,7 +20,7 @@ def dijkstra(world, start: tuple[int, int], goal: tuple[int, int]) -> list[tuple
             return path
 
         for neighbor in world.get_neighbors(*current):
-            new_cost = cost[current] + 1
+            new_cost = cost[current] + world.get_cost(*neighbor)
 
             if neighbor not in cost or new_cost < cost[neighbor]:
                 came_from[neighbor] = current

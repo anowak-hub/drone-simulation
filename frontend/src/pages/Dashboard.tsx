@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getDrone, setObstacles, getFleet, resetSimulation } from '../services/api';
+import { getDrone, setObstacles, getFleet, resetSimulation, getThreats, addThreat, removeThreat, clearThreats } from '../services/api';
 import type { Telemetry, MissionStatus, FleetState } from '../types/drone';
 import TelemetryPanel from '../components/TelemetryPanel';
 import MissionControls from '../components/MissionControls';
@@ -15,8 +15,9 @@ const Dashboard = () => {
         [3, 3], [3, 4], [3, 5], [3, 6]
     ]);
     const [fleet, setFleet] = useState<FleetState>({});
-    const fleetIntervalRef = useRef<number | null>(null);
     const [plannedWaypoints, setPlannedWaypoints] = useState<[number, number][]>([]);
+    const [threatZones, setThreatZones] = useState<[number, number][]>([]);
+    const fleetIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -25,6 +26,8 @@ const Dashboard = () => {
             setOrigin([firstDrone.position[0], firstDrone.position[1]]);
             const fleetData = await getFleet();
             setFleet(fleetData);
+            const threatData = await getThreats();
+            setThreatZones(threatData.threats);
         };
         fetchInitialData();
 
@@ -63,14 +66,28 @@ const Dashboard = () => {
 
     const handleReset = async () => {
         await resetSimulation();
+        await clearThreats();
         setTelemetry(null);
         setPath({});
         setMissionStatus('');
+        setThreatZones([]);
+        setPlannedWaypoints([]);
         const droneData = await getDrone();
         const firstDrone = Object.values(droneData)[0] as { position: [number, number] };
         setOrigin([firstDrone.position[0], firstDrone.position[1]]);
         const fleetData = await getFleet();
         setFleet(fleetData);
+    };
+
+    const handleMapClick = async (x: number, y: number) => {
+        const existing = threatZones.find(([tx, ty]) => tx === x && ty === y);
+        if (existing) {
+            await removeThreat(x, y);
+            setThreatZones(prev => prev.filter(([tx, ty]) => !(tx === x && ty === y)));
+        } else {
+            await addThreat(x, y);
+            setThreatZones(prev => [...prev, [x, y] as [number, number]]);
+        }
     };
 
     const allPaths = Object.values(path).flat() as [number, number][];
@@ -156,7 +173,10 @@ const Dashboard = () => {
                     gap: '1px',
                     overflowY: 'auto',
                 }}>
-                    <MissionControls onMissionUpdate={handleMissionUpdate} onWaypointsChange={setPlannedWaypoints} />
+                    <MissionControls
+                        onMissionUpdate={handleMissionUpdate}
+                        onWaypointsChange={setPlannedWaypoints}
+                    />
                     <FleetPanel fleet={fleet} />
                     <TelemetryPanel telemetry={telemetry} />
                 </div>
@@ -170,6 +190,8 @@ const Dashboard = () => {
                         onObstaclesChange={handleObstaclesChange}
                         fleet={fleet}
                         plannedWaypoints={plannedWaypoints}
+                        threatZones={threatZones}
+                        onMapClick={handleMapClick}
                     />
                 </div>
             </div>

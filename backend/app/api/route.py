@@ -169,5 +169,27 @@ def reset():
         t.log = []
 
     missions.clear()
+    world.threat_zones.clear()
 
     return {"status": "reset"}
+
+@router.get("/world/threats")
+def get_threats():
+    return {
+        "threats": [list(t) for t in world.threat_zones]
+    }
+
+@router.post("/world/threats/add")
+def add_threat(x: int, y: int):
+    world.add_threat(x, y)
+    return {"threats": [list(t) for t in world.threat_zones]}
+
+@router.post("/world/threats/remove")
+def remove_threat(x: int, y: int):
+    world.remove_threat(x, y)
+    return {"threats": [list(t) for t in world.threat_zones]}
+
+@router.post("/world/threats/clear")
+def clear_threats():
+    world.threat_zones.clear()
+    return {"threats": []}
