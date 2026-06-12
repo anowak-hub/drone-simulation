@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { getDrone, setObstacles, getFleet } from '../services/api';
+import { getDrone, setObstacles, getFleet, resetSimulation } from '../services/api';
 import type { Telemetry, MissionStatus, FleetState } from '../types/drone';
 import TelemetryPanel from '../components/TelemetryPanel';
 import MissionControls from '../components/MissionControls';
@@ -22,7 +22,6 @@ const Dashboard = () => {
             const droneData = await getDrone();
             const firstDrone = Object.values(droneData)[0] as { position: [number, number] };
             setOrigin([firstDrone.position[0], firstDrone.position[1]]);
-
             const fleetData = await getFleet();
             setFleet(fleetData);
         };
@@ -59,6 +58,18 @@ const Dashboard = () => {
     const handleObstaclesChange = async (updated: [number, number][]) => {
         setObstacleList(updated);
         await setObstacles(updated);
+    };
+
+    const handleReset = async () => {
+        await resetSimulation();
+        setTelemetry(null);
+        setPath({});
+        setMissionStatus('');
+        const droneData = await getDrone();
+        const firstDrone = Object.values(droneData)[0] as { position: [number, number] };
+        setOrigin([firstDrone.position[0], firstDrone.position[1]]);
+        const fleetData = await getFleet();
+        setFleet(fleetData);
     };
 
     const allPaths = Object.values(path).flat() as [number, number][];
@@ -110,6 +121,21 @@ const Dashboard = () => {
                         {missionStatus === 'complete' ? '✓ Mission Complete' : '⬤ Mission Active'}
                     </span>
                 )}
+                <button
+                    onClick={handleReset}
+                    style={{
+                        marginLeft: missionStatus ? '12px' : 'auto',
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        padding: '4px 14px',
+                        borderRadius: '20px',
+                        background: '#2C2C2E',
+                        color: '#FF453A',
+                        border: 'none',
+                    }}
+                >
+                    Reset
+                </button>
             </div>
 
             {/* Main content */}

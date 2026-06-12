@@ -40,3 +40,8 @@ export const setObstacles = async (obstacles: [number, number][]) => {
     const res = await axios.post(`${BASE_URL}/world/obstacles`, obstacles);
     return res.data;
 };
+
+export const resetSimulation = async () => {
+    const res = await axios.post(`${BASE_URL}/reset`);
+    return res.data;
+};

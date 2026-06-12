@@ -128,3 +128,23 @@ def start_mission(drone_id: str, goal_x: int, goal_y: int, algorithm: str = "ast
         "goal": [goal_x, goal_y],
         "algorithm": algorithm,
     }
+
+@router.post("/reset")
+def reset():
+    drones["drone-1"].position = (0, 0)
+    drones["drone-2"].position = (0, 9)
+    drones["drone-3"].position = (9, 0)
+
+    for drone in drones.values():
+        drone.status = "idle"
+        drone.path = []
+        drone.path_index = 0
+
+    for t in telemetry.values():
+        t.battery = 100.0
+        t.steps_taken = 0
+        t.log = []
+
+    missions.clear()
+
+    return {"status": "reset"}
