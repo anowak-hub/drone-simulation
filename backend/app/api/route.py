@@ -26,21 +26,55 @@ telemetry = {
 missions: dict[str, Mission] = {}
 
 @router.post("/mission/start")
-def start_mission(drone_id: str, goal_x: int, goal_y: int):
+def start_mission(drone_id: str, goal_x: int, goal_y: int, algorithm: str = "astar"):
     if drone_id not in drones:
         return {"error": f"Drone {drone_id} not found"}
     drone = drones[drone_id]
-    mission = Mission(f"mission-{drone_id}", drone, world, goal=(goal_x, goal_y))
+    mission = Mission(
+        f"mission-{drone_id}",
+        drone,
+        world,
+        waypoints=[(goal_x, goal_y)],
+        algorithm=algorithm
+    )
     mission.start()
     missions[drone_id] = mission
-    return {"drone_id": drone_id, "status": mission.status, "goal": [goal_x, goal_y]}
+    return {
+        "drone_id": drone_id,
+        "status": mission.status,
+        "goal": [goal_x, goal_y],
+        "algorithm": algorithm,
+    }
+
+@router.post("/mission/queue")
+def queue_mission(drone_id: str, algorithm: str = "astar", waypoints: list[list[int]] = []):
+    if drone_id not in drones:
+        return {"error": f"Drone {drone_id} not found"}
+    if not waypoints:
+        return {"error": "No waypoints provided"}
+
+    drone = drones[drone_id]
+    mission = Mission(
+        f"mission-{drone_id}",
+        drone,
+        world,
+        waypoints=[tuple(w) for w in waypoints],
+        algorithm=algorithm
+    )
+    mission.start()
+    missions[drone_id] = mission
+    return {
+        "drone_id": drone_id,
+        "status": mission.status,
+        "waypoints": waypoints,
+        "algorithm": algorithm,
+    }
 
 @router.post("/mission/step")
 def step_mission(drone_id: str):
     if drone_id not in missions:
         return {"error": f"No mission for {drone_id}"}
 
-    # Build set of all other drone positions
     occupied = {
         tuple(drone.position)
         for did, drone in drones.items()
@@ -59,6 +93,8 @@ def step_mission(drone_id: str):
         "steps": telemetry[drone_id].steps_taken,
         "status": drone.status,
         "mission_status": mission.status,
+        "current_waypoint": mission.current_waypoint_index,
+        "total_waypoints": len(mission.waypoints),
     }
 
 @router.get("/fleet")
@@ -70,6 +106,8 @@ def get_fleet():
             "steps": telemetry[drone_id].steps_taken,
             "status": drone.status,
             "mission_status": missions[drone_id].status if drone_id in missions else "none",
+            "current_waypoint": missions[drone_id].current_waypoint_index if drone_id in missions else 0,
+            "total_waypoints": len(missions[drone_id].waypoints) if drone_id in missions else 0,
         }
         for drone_id, drone in drones.items()
     }
@@ -113,21 +151,6 @@ def set_obstacles(obstacle_list: list[list[int]]):
 def add_threat(x: int, y: int):
     world.add_obstacle(x, y)
     return {"threats": list(world.obstacles)}
-
-@router.post("/mission/start")
-def start_mission(drone_id: str, goal_x: int, goal_y: int, algorithm: str = "astar"):
-    if drone_id not in drones:
-        return {"error": f"Drone {drone_id} not found"}
-    drone = drones[drone_id]
-    mission = Mission(f"mission-{drone_id}", drone, world, goal=(goal_x, goal_y), algorithm=algorithm)
-    mission.start()
-    missions[drone_id] = mission
-    return {
-        "drone_id": drone_id,
-        "status": mission.status,
-        "goal": [goal_x, goal_y],
-        "algorithm": algorithm,
-    }
 
 @router.post("/reset")
 def reset():

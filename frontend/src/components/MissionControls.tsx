@@ -1,20 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
-import { startMission, stepMission } from '../services/api';
+import { queueMission, stepMission } from '../services/api';
 import type { MissionStatus } from '../types/drone';
 
 interface Props {
     onMissionUpdate: (data: MissionStatus) => void;
+    onWaypointsChange: (waypoints: [number, number][]) => void;
 }
 
 const isInBounds = (val: number) => val >= 0 && val <= 9;
 const DRONE_IDS = ['drone-1', 'drone-2', 'drone-3'];
 const ALGORITHMS = ['astar', 'dijkstra'];
 
-const MissionControls = ({ onMissionUpdate }: Props) => {
+const MissionControls = ({ onMissionUpdate, onWaypointsChange }: Props) => {
     const [selectedDrone, setSelectedDrone] = useState<string>('drone-1');
     const [goalX, setGoalX] = useState<number | ''>('');
     const [goalY, setGoalY] = useState<number | ''>('');
     const [algorithm, setAlgorithm] = useState<string>('astar');
+    const [waypoints, setWaypoints] = useState<[number, number][]>([]);
     const [activeDrones, setActiveDrones] = useState<Set<string>>(new Set());
     const intervalsRef = useRef<Record<string, number>>({});
 
@@ -30,9 +32,26 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
         });
     };
 
+    const handleAddWaypoint = () => {
+        if (goalX === '' || goalY === '') return;
+        if (!isInBounds(Number(goalX)) || !isInBounds(Number(goalY))) return;
+        const updated: [number, number][] = [...waypoints, [Number(goalX), Number(goalY)]];
+        setWaypoints(updated);
+        onWaypointsChange(updated);
+        setGoalX('');
+        setGoalY('');
+    };
+
+    const handleRemoveWaypoint = (index: number) => {
+        const updated = waypoints.filter((_, i) => i !== index);
+        setWaypoints(updated);
+        onWaypointsChange(updated);
+    };
+
     const handleStart = async () => {
+        if (waypoints.length === 0) return;
         const droneId = selectedDrone;
-        await startMission(droneId, Number(goalX), Number(goalY), algorithm);
+        await queueMission(droneId, waypoints, algorithm);
         setActiveDrones(prev => new Set(prev).add(droneId));
 
         intervalsRef.current[droneId] = setInterval(async () => {
@@ -40,11 +59,17 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
             onMissionUpdate(data);
             if (data.mission_status === 'complete' || data.status === 'stuck') {
                 stopStepping(droneId);
+                setWaypoints([]);
+                onWaypointsChange([]);
             }
         }, 500);
     };
 
-    const handleAbort = () => stopStepping(selectedDrone);
+    const handleAbort = () => {
+        stopStepping(selectedDrone);
+        setWaypoints([]);
+        onWaypointsChange([]);
+    };
 
     useEffect(() => {
         return () => {
@@ -54,11 +79,11 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
 
     const xValid = goalX !== '' && isInBounds(Number(goalX));
     const yValid = goalY !== '' && isInBounds(Number(goalY));
-    const isValid = xValid && yValid;
+    const canAdd = xValid && yValid;
     const selectedActive = activeDrones.has(selectedDrone);
 
     const fieldError = (val: number | '') => {
-        if (val === '') return 'Enter a valid value';
+        if (val === '') return null;
         if (!isInBounds(Number(val))) return 'Must be between 0–9';
         return null;
     };
@@ -127,39 +152,107 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
                 </div>
             </div>
 
-            {/* Goal inputs */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                {(['X', 'Y'] as const).map((axis) => {
-                    const val = axis === 'X' ? goalX : goalY;
-                    const setVal = axis === 'X' ? setGoalX : setGoalY;
-                    const error = fieldError(val);
-                    return (
-                        <div key={axis} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <label style={{ fontSize: '15px', color: '#fff' }}>Goal {axis}</label>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                <input
-                                    type="number"
-                                    value={val}
-                                    onChange={e => setVal(e.target.value === '' ? '' : Number(e.target.value))}
-                                    disabled={selectedActive}
-                                    placeholder="0–9"
-                                    min={0}
-                                    max={9}
-                                    style={{ borderColor: error ? '#FF453A' : undefined }}
-                                />
-                                {error && (
-                                    <span style={{ fontSize: '11px', color: '#FF453A' }}>{error}</span>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+            {/* Waypoint inputs */}
+            <div style={{ marginBottom: '12px' }}>
+                <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '8px' }}>Add Waypoint</p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <input
+                            type="number"
+                            value={goalX}
+                            onChange={e => setGoalX(e.target.value === '' ? '' : Number(e.target.value))}
+                            disabled={selectedActive}
+                            placeholder="X"
+                            min={0}
+                            max={9}
+                            style={{
+                                width: '64px',
+                                borderColor: fieldError(goalX) ? '#FF453A' : undefined,
+                            }}
+                        />
+                        {fieldError(goalX) && (
+                            <span style={{ fontSize: '10px', color: '#FF453A' }}>{fieldError(goalX)}</span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <input
+                            type="number"
+                            value={goalY}
+                            onChange={e => setGoalY(e.target.value === '' ? '' : Number(e.target.value))}
+                            disabled={selectedActive}
+                            placeholder="Y"
+                            min={0}
+                            max={9}
+                            style={{
+                                width: '64px',
+                                borderColor: fieldError(goalY) ? '#FF453A' : undefined,
+                            }}
+                        />
+                        {fieldError(goalY) && (
+                            <span style={{ fontSize: '10px', color: '#FF453A' }}>{fieldError(goalY)}</span>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleAddWaypoint}
+                        disabled={!canAdd || selectedActive}
+                        style={{
+                            background: '#2C2C2E',
+                            color: '#0A84FF',
+                            borderRadius: '8px',
+                            padding: '8px 12px',
+                            fontSize: '13px',
+                        }}
+                    >
+                        + Add
+                    </button>
+                </div>
             </div>
 
+            {/* Waypoint list */}
+            {waypoints.length > 0 && (
+                <div style={{ marginBottom: '16px' }}>
+                    <p style={{ fontSize: '13px', color: '#8E8E93', marginBottom: '8px' }}>
+                        Waypoints ({waypoints.length})
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {waypoints.map(([x, y], i) => (
+                            <div key={i} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                background: '#2C2C2E',
+                                borderRadius: '8px',
+                                padding: '6px 10px',
+                            }}>
+                                <span style={{ fontSize: '13px', color: '#fff' }}>
+                                    {i + 1}. ({x}, {y})
+                                </span>
+                                {!selectedActive && (
+                                    <button
+                                        onClick={() => handleRemoveWaypoint(i)}
+                                        style={{
+                                            background: 'none',
+                                            color: '#FF453A',
+                                            border: 'none',
+                                            fontSize: '13px',
+                                            padding: '0 4px',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Action buttons */}
             <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                     onClick={handleStart}
-                    disabled={selectedActive || !isValid}
+                    disabled={selectedActive || waypoints.length === 0}
                     style={{
                         flex: 1,
                         background: '#0A84FF',
@@ -168,7 +261,7 @@ const MissionControls = ({ onMissionUpdate }: Props) => {
                         padding: '10px',
                     }}
                 >
-                    {selectedActive ? 'Active...' : 'Start Mission'}
+                    {selectedActive ? 'Active...' : `Launch (${waypoints.length} wp)`}
                 </button>
                 <button
                     onClick={handleAbort}

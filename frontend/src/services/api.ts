@@ -45,3 +45,10 @@ export const resetSimulation = async () => {
     const res = await axios.post(`${BASE_URL}/reset`);
     return res.data;
 };
+
+export const queueMission = async (droneId: string, waypoints: [number, number][], algorithm: string) => {
+    const res = await axios.post(`${BASE_URL}/mission/queue`, waypoints, {
+        params: { drone_id: droneId, algorithm }
+    });
+    return res.data;
+};

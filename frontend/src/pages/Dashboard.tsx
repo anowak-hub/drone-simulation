@@ -16,6 +16,7 @@ const Dashboard = () => {
     ]);
     const [fleet, setFleet] = useState<FleetState>({});
     const fleetIntervalRef = useRef<number | null>(null);
+    const [plannedWaypoints, setPlannedWaypoints] = useState<[number, number][]>([]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -155,7 +156,7 @@ const Dashboard = () => {
                     gap: '1px',
                     overflowY: 'auto',
                 }}>
-                    <MissionControls onMissionUpdate={handleMissionUpdate} />
+                    <MissionControls onMissionUpdate={handleMissionUpdate} onWaypointsChange={setPlannedWaypoints} />
                     <FleetPanel fleet={fleet} />
                     <TelemetryPanel telemetry={telemetry} />
                 </div>
@@ -168,6 +169,7 @@ const Dashboard = () => {
                         obstacleList={obstacleList}
                         onObstaclesChange={handleObstaclesChange}
                         fleet={fleet}
+                        plannedWaypoints={plannedWaypoints}
                     />
                 </div>
             </div>

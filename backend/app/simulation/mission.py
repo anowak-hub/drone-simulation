@@ -9,27 +9,46 @@ ALGORITHMS = {
 }
 
 class Mission:
-    def __init__(self, mission_id: str, drone: Drone, world: World, goal: tuple[int, int], algorithm: str = "astar"):
+    def __init__(self, mission_id: str, drone: Drone, world: World, waypoints: list[tuple[int, int]], algorithm: str = "astar"):
         self.mission_id = mission_id
         self.drone = drone
         self.world = world
-        self.goal = goal
+        self.waypoints = list(waypoints)
+        self.current_waypoint_index = 0
         self.status = "pending"
         self.algorithm = ALGORITHMS.get(algorithm, astar)
         self.algorithm_name = algorithm
         self.wait_steps = 0
         self.max_wait = 3
 
+    @property
+    def goal(self):
+        if self.current_waypoint_index < len(self.waypoints):
+            return self.waypoints[self.current_waypoint_index]
+        return None
+
     def start(self):
-        path = self.algorithm(self.world, self.drone.position, self.goal)
+        if not self.waypoints:
+            self.status = "failed"
+            return
+
+        self._navigate_to_current_waypoint()
+
+    def _navigate_to_current_waypoint(self):
+        goal = self.goal
+        if goal is None:
+            self.status = "complete"
+            return
+
+        path = self.algorithm(self.world, self.drone.position, goal)
         if not path:
             self.status = "failed"
-            print(f"Mission {self.mission_id} failed: no path found")
+            print(f"Mission {self.mission_id} failed: no path to waypoint {self.current_waypoint_index}")
             return
 
         self.drone.assign_path(path)
         self.status = "active"
-        print(f"Mission {self.mission_id} started via {self.algorithm_name}. Path length: {len(path)} steps")
+        print(f"Mission {self.mission_id} navigating to waypoint {self.current_waypoint_index}: {goal}")
 
     def update(self, occupied: set[tuple[int, int]] = set()):
         if self.status != "active":
@@ -40,16 +59,12 @@ class Mission:
 
             if next_pos in occupied:
                 self.wait_steps += 1
-
                 if self.wait_steps >= self.max_wait:
-                    # Recalculate path treating occupied as obstacles
                     self.world.obstacles.update(occupied)
                     new_path = self.algorithm(self.world, self.drone.position, self.goal)
                     self.world.obstacles.difference_update(occupied)
-
                     if new_path:
                         self.drone.assign_path(new_path)
-                        print(f"Mission {self.mission_id} recalculated path to avoid collision")
                     self.wait_steps = 0
                 return
 
@@ -57,11 +72,16 @@ class Mission:
         self.drone.step(occupied)
 
         if self.drone.is_done():
-            self.status = "complete"
-            print(f"Mission {self.mission_id} complete. Drone arrived at {self.drone.position}.")
+            self.current_waypoint_index += 1
+            if self.current_waypoint_index >= len(self.waypoints):
+                self.status = "complete"
+                print(f"Mission {self.mission_id} all waypoints complete.")
+            else:
+                print(f"Mission {self.mission_id} reached waypoint, moving to next.")
+                self._navigate_to_current_waypoint()
 
     def is_complete(self):
         return self.status == "complete"
 
     def __repr__(self):
-        return f"Mission(id={self.mission_id}, status={self.status}, goal={self.goal}, algorithm={self.algorithm_name})"
+        return f"Mission(id={self.mission_id}, status={self.status}, waypoints={self.waypoints}, algorithm={self.algorithm_name})"

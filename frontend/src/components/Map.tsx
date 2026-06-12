@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Polyline, Marker, Popup, Rectangle } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Rectangle, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { FleetState } from '../types/drone';
 import L from 'leaflet';
@@ -11,6 +11,7 @@ interface Props {
     obstacleList: [number, number][];
     onObstaclesChange: (updated: [number, number][]) => void;
     fleet: FleetState;
+    plannedWaypoints: [number, number][];
 }
 
 const CursorTracker = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
@@ -81,7 +82,7 @@ const originIcon = L.divIcon({
     iconAnchor: [14, 14],
 });
 
-const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet }: Props) => {
+const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet, plannedWaypoints }: Props) => {
     const center: [number, number] = [51.505, -0.09];
     const scale = 0.001;
     const [cursor, setCursor] = useState<[number, number] | null>(null);
@@ -224,6 +225,41 @@ const Map = ({ path, origin, obstacleList, onObstaclesChange, fleet }: Props) =>
                         </Popup>
                     </Marker>
                 ))}
+
+                {/* Planned waypoints */}
+                {plannedWaypoints.length > 0 && (
+                    <>
+                        <Polyline
+                            positions={plannedWaypoints.map(([x, y]) => toLatLng(x, y))}
+                            pathOptions={{
+                                color: '#FFD60A',
+                                weight: 2,
+                                opacity: 0.8,
+                                dashArray: '4 6',
+                            }}
+                        />
+                        {plannedWaypoints.map(([x, y], i) => (
+                            <CircleMarker
+                                key={i}
+                                center={toLatLng(x, y)}
+                                radius={8}
+                                pathOptions={{
+                                    color: '#FFD60A',
+                                    fillColor: '#FFD60A',
+                                    fillOpacity: 0.3,
+                                    weight: 2,
+                                }}
+                            >
+                                <Popup>
+                                    <div style={{ fontFamily: 'system-ui', fontSize: '13px' }}>
+                                        <strong>Waypoint {i + 1}</strong><br />
+                                        ({x}, {y})
+                                    </div>
+                                </Popup>
+                            </CircleMarker>
+                        ))}
+                    </>
+                )}
             </MapContainer>
 
             {cursor && (
