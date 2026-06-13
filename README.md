@@ -74,12 +74,6 @@ Open http://localhost:5173 in your browser.
 6. Drag red obstacle markers to reposition them
 7. Click Reset to restore all drones to their starting positions
 
-## Future Enhancements
-- Simulated radar sensors that detect targets and auto-dispatch drones
-- Swarm behavior and coordinated fleet movements
-- Terrain-aware navigation with elevation cost mapping
-- Dynamic mission reassignment based on battery levels
-- 3D visualization using Three.js
 
 ## Screenshots
 - Refer to docs/screenshots
